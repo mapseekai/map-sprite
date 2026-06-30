@@ -2,12 +2,18 @@ import { normalizeIconName } from "./normalize";
 import type { SvgIconInput } from "./types";
 
 const svgTagPattern = /<svg\b[^>]*>/i;
+const unsafeSvgPattern =
+  /<\s*script\b|<\s*foreignObject\b|\son[a-z]+\s*=|\s(?:href|xlink:href)\s*=\s*["'](?:https?:|data:|javascript:)/i;
 
 export function parseSvgText(svgText: string, fileName: string): SvgIconInput {
   const trimmed = svgText.trim();
 
   if (!trimmed) {
     throw new Error(`SVG file "${fileName}" is empty.`);
+  }
+
+  if (unsafeSvgPattern.test(trimmed)) {
+    throw new Error(`Unsafe SVG content in "${fileName}".`);
   }
 
   const svgTag = trimmed.match(svgTagPattern)?.[0];

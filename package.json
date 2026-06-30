@@ -1,8 +1,9 @@
 {
   "name": "map-sprite",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Framework-independent TypeScript utilities for generating MapLibre and Mapbox sprite assets from SVG icons.",
   "type": "module",
+  "packageManager": "npm@10.9.2",
   "main": "./dist/map-sprite.umd.cjs",
   "module": "./dist/map-sprite.js",
   "types": "./dist/index.d.ts",
@@ -16,11 +17,12 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
-    "dev": "vite --host 127.0.0.1 examples/react-basic",
-    "build": "vite build",
+    "dev": "vite examples/react-basic --host 127.0.0.1 --config vite.config.ts",
+    "build": "vite build --config vite.lib.config.ts && tsc -p tsconfig.build.json",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "typecheck": "tsc --noEmit",

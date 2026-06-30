@@ -1,4 +1,5 @@
 import type { PackedIcon, RenderSpriteOptions, SpriteResult } from "./types";
+import { svgToDataUrl } from "./svg-data-url";
 
 export async function renderSpritePng(
   sprite: SpriteResult,
@@ -59,13 +60,12 @@ function drawRotatedIcon(
 }
 
 function loadSvgImage(svgText: string): Promise<HTMLImageElement> {
-  const encoded = window.btoa(unescape(encodeURIComponent(svgText)));
   const image = new Image();
 
   return new Promise((resolve, reject) => {
     image.onload = () => resolve(image);
     image.onerror = () => reject(new Error("Unable to decode SVG image for PNG rendering."));
-    image.src = `data:image/svg+xml;base64,${encoded}`;
+    image.src = svgToDataUrl(svgText);
   });
 }
 

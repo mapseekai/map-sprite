@@ -159,6 +159,14 @@ function packOrderedIcons(
   }
 
   const [bin] = packer.bins;
+  if (
+    bin.rects.length !== orderedIcons.length ||
+    bin.width > options.maxWidth ||
+    bin.height > options.maxHeight
+  ) {
+    return undefined;
+  }
+
   return {
     width: bin.width,
     height: bin.height,

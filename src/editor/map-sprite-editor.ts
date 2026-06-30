@@ -9,16 +9,20 @@ import {
   type SpriteRotation,
   type SvgIconInput,
 } from "../core";
+import { svgToDataUrl } from "../core/svg-data-url";
+import {
+  drawCanvasIcon,
+  drawDragGhost,
+  drawPreviewFrame,
+  drawSelectionFrame,
+  type CanvasPoint,
+} from "./canvas-drawing";
+import { renderEditorMarkup } from "./render-markup";
 import { editorStyles } from "./styles";
 import type { MapSpriteEditorLayout, MapSpriteEditorOptions, MapSpriteEditorState } from "./types";
 
 const styleElementId = "map-sprite-editor-styles";
 const defaultThemeColor = "#3fb572";
-
-type CanvasPoint = {
-  x: number;
-  y: number;
-};
 
 type PendingCanvasDrag = {
   iconId: string;
@@ -52,7 +56,7 @@ export class MapSpriteEditor {
     }
 
     this.container = container;
-    this.icons = options.icons ?? [];
+    this.icons = [...(options.icons ?? [])];
     this.layoutMode = options.logic ?? "max-edge";
     this.iconPadding = options.padding ?? 2;
     this.preserveOrder = options.preserveOrder ?? true;
@@ -74,14 +78,14 @@ export class MapSpriteEditor {
 
   getState(): MapSpriteEditorState {
     return {
-      icons: this.icons,
+      icons: [...this.icons],
       sprite: this.createCurrentSprite(),
     };
   }
 
   setIcons(icons: SvgIconInput[]) {
-    this.icons = icons;
-    this.selectedIconId = icons.at(-1)?.id;
+    this.icons = [...icons];
+    this.selectedIconId = this.icons.at(-1)?.id;
     if (this.isCustomLayout()) {
       this.reflowCustomPositions(this.icons);
     }
@@ -203,12 +207,26 @@ export class MapSpriteEditor {
     const sprite = spriteState.sprite;
     const selectedIcon = sprite?.icons.find((icon) => icon.id === this.selectedIconId);
 
-    this.container.innerHTML = this.renderMarkup(sprite, selectedIcon, spriteState.error);
+    this.container.innerHTML = renderEditorMarkup({
+      icons: this.icons,
+      sprite,
+      selectedIcon,
+      selectedIconId: this.selectedIconId,
+      hoveredIcon: this.hoveredIcon,
+      layoutMode: this.layoutMode,
+      iconPadding: this.iconPadding,
+      preserveOrder: this.preserveOrder,
+      zoom: this.zoom,
+      themeColor: this.themeColor,
+      error: this.error,
+      spriteError: spriteState.error,
+      isCustomLayout: this.isCustomLayout(),
+    });
     this.bindEvents(sprite);
     void this.drawCanvas(sprite);
 
     if (sprite) {
-      this.onChange?.({ icons: this.icons, sprite });
+      this.onChange?.({ icons: [...this.icons], sprite });
     }
   }
 
@@ -220,122 +238,6 @@ export class MapSpriteEditor {
       this.onError?.(error);
       return { error: error.message };
     }
-  }
-
-  private renderMarkup(
-    sprite: SpriteResult | undefined,
-    selectedIcon: PackedIcon | undefined,
-    spriteError: string | undefined,
-  ) {
-    const activeError = this.error ?? spriteError;
-    const json = JSON.stringify(sprite?.json ?? {}, null, 2);
-
-    return `
-      <main class="map-sprite-editor" style="${this.renderThemeStyle()}">
-        <header class="mse-toolbar">
-          <div>
-            <h1>Map Sprite</h1>
-            <p>Generate MapLibre / Mapbox sprite.png, sprite.json, and @2x assets from SVG files.</p>
-          </div>
-          <div class="mse-toolbar-actions">
-            <input class="mse-file-input" type="file" accept=".svg,image/svg+xml" multiple />
-            <button class="mse-upload" type="button">Upload SVG</button>
-            <button class="mse-clear" type="button" ${this.icons.length === 0 ? "disabled" : ""}>Clear</button>
-            <button class="mse-export" type="button" ${!sprite || this.icons.length === 0 ? "disabled" : ""}>Export ZIP</button>
-          </div>
-        </header>
-        ${activeError ? `<div class="mse-message">${escapeHtml(activeError)}</div>` : ""}
-        <section class="mse-workspace">
-          <aside class="mse-list" aria-label="Imported icons">
-            <div class="mse-heading">
-              <h2>Icons</h2>
-              <span>${this.icons.length}</span>
-            </div>
-            <div class="mse-items">
-              ${(sprite?.icons ?? []).map((icon) => this.renderIconRow(icon)).join("")}
-            </div>
-          </aside>
-          <section class="mse-canvas-panel">
-            <div class="mse-canvas-tools">
-              <span>Sprite ${sprite && sprite.width > 0 ? `${sprite.width} x ${sprite.height}` : "0 x 0"}</span>
-              <div class="mse-tool-group">
-                <label>Layout
-                  <select class="mse-logic">
-                    <option value="max-edge" ${this.layoutMode === "max-edge" ? "selected" : ""}>Max edge</option>
-                    <option value="max-area" ${this.layoutMode === "max-area" ? "selected" : ""}>Max area</option>
-                    <option value="custom" ${this.layoutMode === "custom" ? "selected" : ""}>Custom</option>
-                  </select>
-                </label>
-                <label>Gap
-                  <input class="mse-gap" min="0" max="64" step="1" type="number" value="${this.iconPadding}" />
-                </label>
-                <label class="mse-order-label">Keep order
-                  <input class="mse-preserve-order" type="checkbox" ${this.preserveOrder ? "checked" : ""} ${this.isCustomLayout() ? "disabled" : ""} />
-                </label>
-                <label>Zoom
-                  <select class="mse-zoom">
-                    ${[1, 2, 4, 8].map((value) => `<option value="${value}" ${this.zoom === value ? "selected" : ""}>${value}x</option>`).join("")}
-                  </select>
-                </label>
-                <label>Theme
-                  <input class="mse-theme" type="color" value="${this.themeColor}" />
-                </label>
-              </div>
-            </div>
-            <div class="mse-stage">
-              <canvas class="mse-canvas"></canvas>
-            </div>
-          </section>
-          <aside class="mse-output">
-            <div class="mse-heading">
-              <h2>Output</h2>
-              <span>${sprite ? `${sprite.width} x ${sprite.height}` : "0 x 0"}</span>
-            </div>
-            <section class="mse-details">
-              <h3>Selected</h3>
-              ${selectedIcon ? this.renderSelectedDetails(selectedIcon) : "<p>No icon selected.</p>"}
-              ${this.hoveredIcon ? `<p class="mse-hover-note">Hovering ${escapeHtml(this.hoveredIcon.name)}</p>` : ""}
-            </section>
-            <pre>${escapeHtml(json)}</pre>
-          </aside>
-        </section>
-      </main>
-    `;
-  }
-
-  private renderThemeStyle() {
-    return `--mse-accent: ${this.themeColor}; --mse-accent-soft: ${hexToRgba(this.themeColor, 0.12)}; --mse-accent-strong-soft: ${hexToRgba(this.themeColor, 0.22)};`;
-  }
-
-  private renderIconRow(icon: PackedIcon) {
-    const canDrag = this.isCustomLayout();
-    return `
-      <button class="mse-row ${icon.id === this.selectedIconId ? "is-selected" : ""}" data-icon-id="${escapeHtml(icon.id)}" draggable="${canDrag}" type="button">
-        <span class="mse-thumb">${icon.svgText}</span>
-        <span>
-          <strong>${escapeHtml(icon.name)}</strong>
-          <small>${icon.width} x ${icon.height}</small>
-        </span>
-        <span class="mse-row-delete" role="button" tabindex="0">Delete</span>
-      </button>
-    `;
-  }
-
-  private renderSelectedDetails(icon: PackedIcon) {
-    return `
-      <dl>
-        <dt>Name</dt><dd>${escapeHtml(icon.name)}</dd>
-        <dt>File</dt><dd>${escapeHtml(icon.fileName)}</dd>
-        <dt>Size</dt><dd>${icon.width} x ${icon.height}</dd>
-        <dt>Source</dt><dd>${icon.sourceWidth} x ${icon.sourceHeight}</dd>
-        <dt>Rotation</dt><dd>${icon.rotation} deg</dd>
-        <dt>Position</dt><dd>${icon.x}, ${icon.y}</dd>
-      </dl>
-      <div class="mse-rotation-actions">
-        <button class="mse-rotate-left" type="button">Rotate left</button>
-        <button class="mse-rotate-right" type="button">Rotate right</button>
-      </div>
-    `;
   }
 
   private bindEvents(sprite: SpriteResult | undefined) {
@@ -961,28 +863,6 @@ function getDistance(left: CanvasPoint, right: CanvasPoint) {
   return Math.hypot(left.x - right.x, left.y - right.y);
 }
 
-function drawPreviewFrame(
-  context: CanvasRenderingContext2D,
-  icon: PackedIcon,
-  zoom: number,
-  color: string,
-) {
-  const lineWidth = 2 / zoom;
-  const inset = lineWidth / 2;
-
-  context.save();
-  context.strokeStyle = color;
-  context.lineWidth = lineWidth;
-  context.setLineDash([4 / zoom, 3 / zoom]);
-  context.strokeRect(
-    icon.x + inset,
-    icon.y + inset,
-    Math.max(0, icon.width - lineWidth),
-    Math.max(0, icon.height - lineWidth),
-  );
-  context.restore();
-}
-
 function injectStyles() {
   if (document.getElementById(styleElementId)) {
     return;
@@ -999,89 +879,6 @@ function rotateBy(rotation: SpriteRotation, delta: 90 | -90): SpriteRotation {
   return nextRotation === 90 || nextRotation === 180 || nextRotation === 270 ? nextRotation : 0;
 }
 
-function drawCanvasIcon(
-  context: CanvasRenderingContext2D,
-  image: HTMLImageElement,
-  icon: PackedIcon,
-  opacity = 1,
-) {
-  context.save();
-  context.globalAlpha = opacity;
-  context.translate(icon.x, icon.y);
-
-  if (icon.rotation === 90) {
-    context.translate(icon.width, 0);
-    context.rotate(Math.PI / 2);
-  } else if (icon.rotation === 180) {
-    context.translate(icon.width, icon.height);
-    context.rotate(Math.PI);
-  } else if (icon.rotation === 270) {
-    context.translate(0, icon.height);
-    context.rotate(-Math.PI / 2);
-  }
-
-  context.drawImage(image, 0, 0, icon.sourceWidth, icon.sourceHeight);
-  context.restore();
-}
-
-function drawDragGhost(
-  context: CanvasRenderingContext2D,
-  image: HTMLImageElement,
-  icon: PackedIcon,
-  pointer: CanvasPoint,
-  zoom: number,
-  color: string,
-) {
-  const x = pointer.x - icon.width / 2;
-  const y = pointer.y - icon.height / 2;
-  const lineWidth = 1.5 / zoom;
-  const padding = 3 / zoom;
-
-  context.save();
-  context.globalAlpha = 0.78;
-  context.fillStyle = "rgba(255, 255, 255, 0.72)";
-  context.strokeStyle = hexToRgba(color, 0.72);
-  context.lineWidth = lineWidth;
-  context.shadowColor = "rgba(15, 23, 42, 0.18)";
-  context.shadowBlur = 8 / zoom;
-  context.shadowOffsetY = 3 / zoom;
-  context.beginPath();
-  context.roundRect(
-    x - padding,
-    y - padding,
-    icon.width + padding * 2,
-    icon.height + padding * 2,
-    Math.min(6 / zoom, Math.min(icon.width, icon.height) / 2),
-  );
-  context.fill();
-  context.stroke();
-  context.restore();
-
-  drawCanvasIcon(context, image, { ...icon, x, y }, 0.9);
-}
-
-function drawSelectionFrame(
-  context: CanvasRenderingContext2D,
-  icon: PackedIcon,
-  zoom: number,
-  color: string,
-) {
-  const lineWidth = 2 / zoom;
-  const inset = lineWidth / 2;
-
-  context.save();
-  context.strokeStyle = color;
-  context.lineWidth = lineWidth;
-  context.lineJoin = "miter";
-  context.strokeRect(
-    icon.x + inset,
-    icon.y + inset,
-    Math.max(0, icon.width - lineWidth),
-    Math.max(0, icon.height - lineWidth),
-  );
-  context.restore();
-}
-
 function normalizeThemeColor(color: string | undefined) {
   if (!color) {
     return defaultThemeColor;
@@ -1091,30 +888,12 @@ function normalizeThemeColor(color: string | undefined) {
   return /^#[0-9a-fA-F]{6}$/.test(trimmedColor) ? trimmedColor.toLowerCase() : defaultThemeColor;
 }
 
-function hexToRgba(color: string, alpha: number) {
-  const normalizedColor = normalizeThemeColor(color);
-  const red = Number.parseInt(normalizedColor.slice(1, 3), 16);
-  const green = Number.parseInt(normalizedColor.slice(3, 5), 16);
-  const blue = Number.parseInt(normalizedColor.slice(5, 7), 16);
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-}
-
 function loadPreviewImage(svgText: string): Promise<HTMLImageElement> {
   const image = new Image();
-  const encoded = window.btoa(unescape(encodeURIComponent(svgText)));
 
   return new Promise((resolve, reject) => {
     image.onload = () => resolve(image);
     image.onerror = () => reject(new Error("Unable to draw SVG preview."));
-    image.src = `data:image/svg+xml;base64,${encoded}`;
+    image.src = svgToDataUrl(svgText);
   });
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }

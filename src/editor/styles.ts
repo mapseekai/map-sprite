@@ -154,7 +154,7 @@ export const editorStyles = `
   display: grid;
   place-items: center;
 }
-.mse-thumb svg {
+.mse-thumb img {
   max-width: 32px;
   max-height: 32px;
 }

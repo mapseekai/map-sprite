@@ -1,13 +1,221 @@
 html,
 body,
 #root {
+  height: 100%;
   min-height: 100%;
 }
 
 body {
   margin: 0;
+  color: #18202f;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #edf1f5;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.example-app {
+  min-height: 100vh;
+}
+
+.example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 24px;
+  border-bottom: 1px solid #d7dde5;
+  background: #ffffff;
+}
+
+.example-header h1 {
+  margin: 0;
+  color: #101828;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.example-header p {
+  margin: 4px 0 0;
+  color: #657083;
+  font-size: 14px;
+}
+
+.example-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.example-tabs button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #cfd7e3;
+  border-radius: 6px;
+  color: #344054;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.example-tabs button.is-active {
+  border-color: #2f9e6a;
+  color: #0f6f47;
+  background: #e8f6ef;
 }
 
 .example-shell {
-  min-height: 100vh;
+  min-height: calc(100vh - 77px);
+}
+
+.maplibre-test {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  min-height: calc(100vh - 77px);
+}
+
+.maplibre-map {
+  min-height: calc(100vh - 77px);
+}
+
+.maplibre-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px;
+  overflow: auto;
+  border-left: 1px solid #d7dde5;
+  background: #ffffff;
+}
+
+.maplibre-panel h2 {
+  margin: 0;
+  color: #101828;
+  font-size: 18px;
+}
+
+.maplibre-panel p {
+  margin: 0;
+  color: #5f6b7a;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.status-pill {
+  width: fit-content;
+  min-height: 24px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-loading {
+  color: #7a4d00;
+  background: #fff3c4;
+}
+
+.status-ready {
+  color: #0f6f47;
+  background: #dff7ea;
+}
+
+.status-error {
+  color: #a31b1b;
+  background: #ffe0e0;
+}
+
+.asset-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.asset-preview div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #d7dde5;
+  border-radius: 6px;
+  background:
+    linear-gradient(45deg, #eef2f6 25%, transparent 25%),
+    linear-gradient(-45deg, #eef2f6 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #eef2f6 75%),
+    linear-gradient(-45deg, transparent 75%, #eef2f6 75%), #ffffff;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+  background-size: 16px 16px;
+}
+
+.asset-preview span {
+  display: block;
+  margin-bottom: 8px;
+  color: #4b5565;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.asset-preview img {
+  max-width: 100%;
+  image-rendering: pixelated;
+}
+
+.compat-list {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.compat-list dt {
+  color: #687386;
+  font-weight: 700;
+}
+
+.compat-list dd {
+  min-width: 0;
+  margin: 0;
+  color: #263244;
+}
+
+.maplibre-panel pre {
+  min-height: 180px;
+  max-height: 360px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid #d7dde5;
+  border-radius: 6px;
+  color: #1f2937;
+  background: #f8fafc;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+  .example-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .maplibre-test {
+    grid-template-columns: 1fr;
+  }
+
+  .maplibre-map {
+    min-height: 56vh;
+  }
+
+  .maplibre-panel {
+    border-top: 1px solid #d7dde5;
+    border-left: 0;
+  }
 }

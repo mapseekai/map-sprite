@@ -7,6 +7,7 @@ The package includes a small React example, but the core library does not depend
 ## Features
 
 - Parse SVG text into icon inputs.
+- Reject active or externally referenced SVG content at the import boundary.
 - Normalize SVG file names into map icon IDs.
 - Pack icons with `maxrects-packer`.
 - Generate MapLibre / Mapbox-compatible `sprite.json`.
@@ -37,6 +38,76 @@ console.log(sprite.json);
 const zipBlob = await exportSpriteZip(sprite);
 ```
 
+## MapLibre / Mapbox Style Usage
+
+Serve the generated sprite files over HTTP and set the style `sprite` field to the base URL without a file extension:
+
+```ts
+const style = {
+  version: 8,
+  sprite: "https://example.com/sprites/demo/sprite",
+  sources: {
+    test: {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [116.397, 39.908]
+            },
+            properties: {
+              icon: "gas-valve"
+            }
+          }
+        ]
+      }
+    }
+  },
+  layers: [
+    {
+      id: "test-icon",
+      type: "symbol",
+      source: "test",
+      layout: {
+        "icon-image": ["get", "icon"],
+        "icon-size": 1,
+        "icon-allow-overlap": true
+      }
+    }
+  ]
+};
+```
+
+MapLibre / Mapbox automatically request the matching files:
+
+```text
+https://example.com/sprites/demo/sprite.json
+https://example.com/sprites/demo/sprite.png
+https://example.com/sprites/demo/sprite@2x.json
+https://example.com/sprites/demo/sprite@2x.png
+```
+
+The `icon-image` value must match a key in `sprite.json`, not the original SVG file name.
+
+## SVG Input Safety
+
+`parseSvgText` is the intended import boundary for user-provided SVG files. It stores the original SVG text for rendering, but rejects SVG content that can execute code or fetch external resources:
+
+- `<script>` elements
+- event handler attributes such as `onload`
+- `<foreignObject>` HTML embedding
+- `href` / `xlink:href` values that start with `http:`, `https:`, `data:`, or `javascript:`
+
+```ts
+parseSvgText('<svg width="16" height="16"><script>alert(1)</script></svg>', "bad.svg");
+// throws: Unsafe SVG content in "bad.svg".
+```
+
+If you bypass `parseSvgText` and construct `SvgIconInput` objects manually, validate or trust the SVG text before passing it to `createSprite`, `renderSpritePng`, `exportSpriteZip`, or `MapSpriteEditor`.
+
 ## DOM Editor Usage
 
 The package also exposes a DOM-mounted editor, similar to map SDK initialization:
@@ -62,6 +133,8 @@ editor.destroy();
 ```
 
 The editor owns its UI and supports SVG upload, drag-and-drop import, icon order reordering, icon rotation, layout strategy switching, gap configuration, theme color switching, transparent checkerboard preview, JSON preview, and ZIP export.
+
+The editor also owns its icon array internally. Constructor `icons`, `setIcons(icons)`, `getState().icons`, and `onChange({ icons })` use array copies so callers cannot mutate editor state by keeping a reference to a previously passed or returned array.
 
 Editor layout modes:
 
@@ -114,6 +187,9 @@ parseSvgText(svgText: string, fileName: string): SvgIconInput
 createSprite(icons: SvgIconInput[], options?: SpriteOptions): SpriteResult
 renderSpritePng(sprite: SpriteResult, options?: RenderSpriteOptions): Promise<Blob>
 exportSpriteZip(sprite: SpriteResult, options?: ExportSpriteZipOptions): Promise<Blob>
+createSpriteJson(icons: PackedIcon[], pixelRatio?: 1 | 2): SpriteJson
+createRetinaSpriteJson(icons: PackedIcon[]): SpriteJson
+resolveSpriteOptions(options?: SpriteOptions): Required<SpriteOptions>
 ```
 
 Default packing options:
@@ -153,6 +229,8 @@ npm run dev
 
 The example supports SVG upload, drag-and-drop import, layout mode switching, gap changes, theme color changes, transparent checkerboard canvas preview, click selection, custom-mode reorder dragging, rotation, deletion, JSON preview, and ZIP export.
 
+It also includes a `MapLibre Test` view. Upload SVG icons in `Sprite Editor` first, then switch to `MapLibre Test`. The test view uses the current editor `onChange` output, renders `sprite.png`, `sprite.json`, `sprite@2x.png`, and `sprite@2x.json` from that same `SpriteResult`, serves them through the local Vite dev server, sets the MapLibre style `sprite` URL to that HTTP endpoint, and renders the icons through a real symbol layer.
+
 ## Development
 
 ```bash
@@ -163,4 +241,10 @@ npm run typecheck
 npm run build
 ```
 
+`npm run build` uses `vite.lib.config.ts` for the distributable library bundle and `tsconfig.build.json` for declaration output. The default `vite.config.ts` is kept for the React example and Vitest environment.
+
 The ZIP export test uses an injected PNG renderer so core ZIP behavior can be verified in Node without a real browser canvas.
+
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for release notes.

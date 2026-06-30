@@ -103,6 +103,23 @@ describe("createSprite", () => {
 
     expect(sprite.width * sprite.height).toBeLessThan(19564);
   });
+
+  it("rejects sprites that would exceed configured final bounds after border is applied", () => {
+    expect(() =>
+      createSprite([icon("exact", 80, 30)], {
+        maxWidth: 80,
+        maxHeight: 30,
+      }),
+    ).toThrow(/single sprite/);
+
+    const sprite = createSprite([icon("exact", 80, 30)], {
+      maxWidth: 82,
+      maxHeight: 32,
+    });
+
+    expect(sprite.width).toBeLessThanOrEqual(82);
+    expect(sprite.height).toBeLessThanOrEqual(32);
+  });
 });
 
 function icon(name: string, width: number, height: number, fileName = `${name}.svg`): SvgIconInput {
