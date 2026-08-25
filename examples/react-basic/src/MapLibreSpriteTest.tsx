@@ -40,8 +40,8 @@ declare global {
   }
 }
 
-const mapLibreCssUrl = "https://unpkg.com/maplibre-gl/dist/maplibre-gl.css";
-const mapLibreScriptUrl = "https://unpkg.com/maplibre-gl/dist/maplibre-gl.js";
+export const mapLibreCssUrl = "https://unpkg.com/maplibre-gl@^5.17.0/dist/maplibre-gl.css";
+export const mapLibreScriptUrl = "https://unpkg.com/maplibre-gl@^5.17.0/dist/maplibre-gl.js";
 let mapLibrePromise: Promise<MapLibreGlobal> | undefined;
 
 export function MapLibreSpriteTest({ sprite }: { sprite: SpriteResult | undefined }) {

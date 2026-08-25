@@ -22,11 +22,16 @@ vi.mock("./sprite-asset-host", () => ({
   deleteSpriteAssets: vi.fn(),
 }));
 
-import { createSpriteBundle } from "./MapLibreSpriteTest";
+import { createSpriteBundle, mapLibreCssUrl, mapLibreScriptUrl } from "./MapLibreSpriteTest";
 
 afterEach(() => vi.clearAllMocks());
 
 describe("createSpriteBundle", () => {
+  it("uses the supported versioned MapLibre CDN assets", () => {
+    expect(mapLibreScriptUrl).toBe("https://unpkg.com/maplibre-gl@^5.17.0/dist/maplibre-gl.js");
+    expect(mapLibreCssUrl).toBe("https://unpkg.com/maplibre-gl@^5.17.0/dist/maplibre-gl.css");
+  });
+
   it("publishes generated images before returning the MapLibre sprite URL", async () => {
     const sprite: SpriteResult = {
       width: 16,
