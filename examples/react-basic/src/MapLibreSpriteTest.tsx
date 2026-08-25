@@ -5,6 +5,12 @@ import {
   type SpriteJson,
   type SpriteResult,
 } from "../../../src";
+import {
+  createSpriteBaseUrl,
+  deleteSpriteAssets,
+  prepareSpriteAssetHost,
+  publishSpriteAssets,
+} from "./sprite-asset-host";
 
 type TestStatus = "empty" | "loading" | "ready" | "error";
 
@@ -175,7 +181,7 @@ export function MapLibreSpriteTest({ sprite }: { sprite: SpriteResult | undefine
       cancelled = true;
       map?.remove();
       if (assetId) {
-        void fetch(`/__map-sprite-test/${assetId}`, { method: "DELETE" });
+        void deleteSpriteAssets(assetId);
       }
     };
   }, [sprite]);
@@ -222,9 +228,10 @@ export function MapLibreSpriteTest({ sprite }: { sprite: SpriteResult | undefine
   );
 }
 
-async function createSpriteBundle(sprite: SpriteResult) {
+export async function createSpriteBundle(sprite: SpriteResult) {
+  await prepareSpriteAssetHost();
+
   const assetId = createAssetId();
-  const spriteBaseUrl = `${window.location.origin}/__map-sprite-test/${assetId}/sprite`;
   const [spritePng, retinaPng] = await Promise.all([
     renderSpritePng(sprite),
     renderSpritePng(sprite, { pixelRatio: 2 }),
@@ -232,27 +239,17 @@ async function createSpriteBundle(sprite: SpriteResult) {
   const spriteJson = sprite.json;
   const retinaJson = createRetinaSpriteJson(sprite);
 
-  const response = await fetch(`/__map-sprite-test/${assetId}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      spriteJson,
-      retinaJson,
-      spritePngBase64: await blobToBase64(spritePng),
-      retinaPngBase64: await blobToBase64(retinaPng),
-    }),
+  await publishSpriteAssets(assetId, {
+    spriteJson,
+    retinaJson,
+    spritePngBase64: await blobToBase64(spritePng),
+    retinaPngBase64: await blobToBase64(retinaPng),
   });
-
-  if (!response.ok) {
-    throw new Error("Unable to publish generated sprite assets over HTTP.");
-  }
 
   return {
     assetId,
     iconNames: sprite.icons.map((icon) => icon.name),
-    spriteBaseUrl,
+    spriteBaseUrl: createSpriteBaseUrl(assetId),
     spriteJson,
     retinaJson,
   };
