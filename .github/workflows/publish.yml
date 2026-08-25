@@ -1,0 +1,53 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Run tests
+        run: npm test
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Build package
+        run: npm run build
+
+      - name: Verify release tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          package_version="$(node -p "require('./package.json').version")"
+          test "$RELEASE_TAG" = "v$package_version"
+
+      - name: Inspect package contents
+        run: npm pack --dry-run
+
+      - name: Publish to npm
+        run: npm publish
