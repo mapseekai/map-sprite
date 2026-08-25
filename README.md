@@ -4,6 +4,8 @@ Framework-independent TypeScript utilities for generating MapLibre / Mapbox spri
 
 The package includes a small React example, but the core library does not depend on React.
 
+Try the public [Map Sprite example](https://mapseekai.github.io/map-sprite/).
+
 ## Features
 
 - Parse SVG text into icon inputs.
@@ -226,6 +228,15 @@ Run the included example:
 npm install
 npm run dev
 ```
+
+Build the example with the GitHub Pages repository path and preview the resulting static site locally:
+
+```bash
+VITE_BASE_PATH=/map-sprite/ npm run build:example
+npm run preview:example
+```
+
+The GitHub Pages workflow sets `VITE_BASE_PATH` automatically. In the production build, the MapLibre test uses a Service Worker to serve the current generated sprite assets from the browser, so it remains functional without a backend server.
 
 The example supports SVG upload, drag-and-drop import, layout mode switching, gap changes, theme color changes, transparent checkerboard canvas preview, click selection, custom-mode reorder dragging, rotation, deletion, JSON preview, and ZIP export.
 
