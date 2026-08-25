@@ -2,13 +2,19 @@
 
 import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
+import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 
-export default defineConfig({
-  plugins: [mapSpriteHttpTestPlugin(), react()],
-  test: {
-    environment: "jsdom",
-  },
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, ".", "VITE_");
+
+  return {
+    base: env.VITE_BASE_PATH ?? "/",
+    plugins: [mapSpriteHttpTestPlugin(), react()],
+    test: {
+      environment: "jsdom",
+    },
+  };
 });
 
 interface DevSpritePayload {

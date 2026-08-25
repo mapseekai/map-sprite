@@ -22,6 +22,8 @@
   ],
   "scripts": {
     "dev": "vite examples/react-basic --host 127.0.0.1 --config vite.config.ts",
+    "build:example": "vite build examples/react-basic --config vite.config.ts",
+    "preview:example": "vite preview examples/react-basic --config vite.config.ts",
     "build": "vite build --config vite.lib.config.ts && tsc -p tsconfig.build.json",
     "format": "biome format --write .",
     "format:check": "biome format .",
